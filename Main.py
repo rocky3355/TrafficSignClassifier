@@ -13,8 +13,11 @@ import matplotlib.pyplot as plt
 # %matplotlib inline
 
 
+IMG_WIDTH = 32
+IMG_HEIGHT = 32
+
 def load_data(load_model):
-    data_folder = 'TrafficSignsData'
+    data_folder = 'Resources/TrafficSigns'
     training_file = os.path.join(data_folder, 'train.p')
     validation_file = os.path.join(data_folder, 'valid.p')
     testing_file = os.path.join(data_folder, 'test.p')
@@ -129,27 +132,28 @@ def load_kernels():
         exit(0)
 
     device = cuda_platform.devices[0]
+    print('Chosen OpenCL device: {0}'.format(cuda_platform.devices[0].name))
     cl_context = cuda_platform.create_context([device])
 
     cl_queue = cl_context.create_queue(device)
     program = cl_context.create_program(
-        """
-        __kernel void imageProcessing(__global const uchar* rgbImage, __global const float* parameters, __global float* grayImage) {
+         """
+        __kernel void imageProcessing(__global const uchar* rgbImage, __global const float* parameters, __global float* grayImage) {{
             size_t imgIdx = get_global_id(0);
-            size_t rgbIdx = 3072 * imgIdx; 
-            size_t grayIdx = 1024 * imgIdx;
+            size_t rgbIdx = {0} * imgIdx; 
+            size_t grayIdx = {1} * imgIdx;
             size_t paramIdx = 2 * imgIdx;
-            for (int y = 0; y < 32; y++) {
-                for (int x = 0; x < 32; x++) {
+            for (int y = 0; y < {2}; y++) {{
+                for (int x = 0; x < {3}; x++) {{
                     float gray = 0.21 * rgbImage[rgbIdx] + 0.72 * rgbImage[rgbIdx + 1] + 0.07 * rgbImage[rgbIdx + 2];
                     float grayEqualized = (gray - parameters[paramIdx]) * 255.0 / parameters[paramIdx + 1];
                     grayImage[grayIdx] = (grayEqualized - 128.0) / 128.0;
                     grayIdx++;
                     rgbIdx += 3;
-                }
-            }
-        }
-        """)
+                }}
+            }}
+        }}
+        """.format(3*IMG_WIDTH*IMG_HEIGHT, IMG_WIDTH*IMG_HEIGHT, IMG_WIDTH, IMG_HEIGHT))
 
     cl_image_processing_kernel = program.get_kernel('imageProcessing')
 
@@ -260,7 +264,7 @@ def generate_fake_data(orig_images, images, show_images):
 
 def create_sign_dict():
     sign_dict = {}
-    with open('TrafficSignsData/trafficsignnames.csv') as file:
+    with open('Resources/TrafficSigns/trafficsignnames.csv') as file:
         reader = csv.reader(file, delimiter=',')
         # Skip the header
         next(reader)
@@ -293,7 +297,6 @@ def main():
         #    show_image_new(img, X_test_p[idx])
     else:
         X_train, y_train = train['features'], train['labels']
-        #X_train_orig = np.copy(X_train)
         X_train = image_processing(X_train)
         new_images = generate_fake_data(None, X_train, False)
         X_train = np.concatenate((X_train, new_images))
@@ -325,7 +328,7 @@ def main():
     accuracy_operation = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
     saver = tf.train.Saver()
-    session_path = './TrafficSignTF/Session.ckpt'
+    session_path = 'Resources/TensorflowModel/Session.ckpt'
 
     with tf.Session() as sess:
         if load_model:
@@ -334,12 +337,12 @@ def main():
             test_accuracy = evaluate(X_test, y_test, batch_size, accuracy_operation, x, y, keep_prob_conv, keep_prob_fc)
             print('Test accuracy = {:.3f}'.format(test_accuracy))
 
-            imgs = { \
-                17: load_and_prepare_test_image('TestImages/Test01_cropped.jpg'), \
-                27: load_and_prepare_test_image('TestImages/Test02_cropped.jpg'), \
-                5: load_and_prepare_test_image('TestImages/Test03_cropped.jpg'), \
-                13: load_and_prepare_test_image('TestImages/Test04_cropped.jpg'), \
-                23: load_and_prepare_test_image('TestImages/Test05_cropped.jpg') \
+            imgs = {
+                17: load_and_prepare_test_image('Resources/Images/Test01_cropped.jpg'),
+                27: load_and_prepare_test_image('Resources/Images/Test02_cropped.jpg'),
+                5: load_and_prepare_test_image('Resources/Images/Test03_cropped.jpg'),
+                13: load_and_prepare_test_image('Resources/Images/Test04_cropped.jpg'),
+                23: load_and_prepare_test_image('Resources/Images/Test05_cropped.jpg')
             }
 
             for sign_id, img in imgs.items():
