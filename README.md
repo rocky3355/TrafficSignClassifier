@@ -1,4 +1,4 @@
-# TrafficSignClassifier
+# Traffic Sign Classifier
 
 This project is about creating a traffic sign classifier using neural networks.
 
