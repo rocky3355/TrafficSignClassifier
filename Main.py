@@ -309,7 +309,8 @@ def main():
     img_height = 32
     img_channels = 1
     rate = 0.001
-    batch_size = 128
+    batch_size_train = 64
+    batch_size_valid = 1024
     n_classes = 43
 
     x = tf.placeholder(tf.float32, (None, img_width, img_height, img_channels))
@@ -334,7 +335,7 @@ def main():
         if load_model:
             sign_dict = create_sign_dict()
             saver.restore(sess, session_path)
-            test_accuracy = evaluate(X_test, y_test, batch_size, accuracy_operation, x, y, keep_prob_conv, keep_prob_fc)
+            test_accuracy = evaluate(X_test, y_test, batch_size_valid, accuracy_operation, x, y, keep_prob_conv, keep_prob_fc)
             print('Test accuracy = {:.3f}'.format(test_accuracy))
 
             imgs = {
@@ -366,16 +367,16 @@ def main():
             epoch = 1
             validation_accuracy = 0
 
-            while validation_accuracy < 0.97:
+            while validation_accuracy < 0.975:
                 X_train, y_train = sklearn.utils.shuffle(X_train, y_train)
-                for offset in range(0, len(X_train), batch_size):
-                    end = offset + batch_size
+                for offset in range(0, len(X_train), batch_size_train):
+                    end = offset + batch_size_train
                     batch_x = X_train[offset:end]
                     batch_y = y_train[offset:end]
                     sess.run(training_operation,
                              feed_dict={x: batch_x, y: batch_y, keep_prob_conv: 0.75, keep_prob_fc: 0.5})
 
-                validation_accuracy = evaluate(X_valid, y_valid, batch_size, accuracy_operation, x, y, keep_prob_conv,
+                validation_accuracy = evaluate(X_valid, y_valid, batch_size_valid, accuracy_operation, x, y, keep_prob_conv,
                                                keep_prob_fc)
                 # test_accuracy = evaluate(X_train, y_train, batch_size, accuracy_operation, x, y)
                 print('EPOCH {0} ...'.format(epoch))
